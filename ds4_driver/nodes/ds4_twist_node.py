@@ -53,7 +53,11 @@ class StatusToTwist(object):
         self._attrs = []
         for attr in Status.__slots__:
             # ROS2 message slots have a prepended underscore
-            if attr.startswith("_axis_") or attr.startswith("_button_"):
+            if (
+                attr.startswith("_axis_")
+                or attr.startswith("_button_")
+                or attr.startswith("_touch0")
+            ):
                 self._attrs.append(attr[1:])  # get rid of the prepended underscore
         self._pub = self._node.create_publisher(self._cls, "cmd_vel", 0)
         self._sub = self._node.create_subscription(Status, "status", self.cb_status, 0)
