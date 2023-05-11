@@ -64,6 +64,10 @@ class StatusToTwist(object):
             Status, "ds4_driver/status", self.cb_status, 0
         )
         self._init_run = True
+        self._height = -1.0  # store height for further implementation
+        self._x_locked = False
+        self._x_locked_value = 0.0
+        self._triangle_pressed = False
 
     def cb_status(self, msg):
         """
@@ -100,13 +104,38 @@ class StatusToTwist(object):
                 if scale is None:
                     scale = 1.0
                 try:
-                    val = eval(expr, {}, input_vals)
+                    if expr == "l2_r2_heightfunction":
+                        val = self.l2_r2_heightfunction(input_vals)
+                    elif k == "x":
+                        val = eval(expr, {}, input_vals)
+                        if not self._triangle_pressed and input_vals["button_triangle"]:
+                            self._triangle_pressed = True
+                            self._x_locked = not self._x_locked
+                            self._x_locked_value = val
+                        elif (
+                            self._triangle_pressed and not input_vals["button_triangle"]
+                        ):
+                            self._triangle_pressed = False
+                        if self._x_locked:
+                            val = self._x_locked_value
+                    else:
+                        val = eval(expr, {}, input_vals)
                     setattr(vel_vec, k, scale * val)
                 except NameError:
                     # some names are not defined
                     pass
 
         self._pub.publish(to_pub)
+
+    def l2_r2_heightfunction(self, input_vals):
+        scale = 0.01
+        self._height -= input_vals["axis_l2"] * scale
+        self._height += input_vals["axis_r2"] * scale
+        if self._height < -1.0:
+            self._height = -1.0
+        if self._height > 1.0:
+            self._height = 1.0
+        return self._height
 
 
 def main():
