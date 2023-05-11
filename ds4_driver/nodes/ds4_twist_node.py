@@ -60,7 +60,10 @@ class StatusToTwist(object):
             ):
                 self._attrs.append(attr[1:])  # get rid of the prepended underscore
         self._pub = self._node.create_publisher(self._cls, "cmd_vel", 0)
-        self._sub = self._node.create_subscription(Status, "status", self.cb_status, 0)
+        self._sub = self._node.create_subscription(
+            Status, "ds4_driver/status", self.cb_status, 0
+        )
+        self._init_run = True
 
     def cb_status(self, msg):
         """
@@ -68,9 +71,19 @@ class StatusToTwist(object):
         :type msg: Status
         :return:
         """
+        if self._init_run:
+            self._init_touch0_id = getattr(msg, "touch0").id
+            self._init_run = False
+
         input_vals = {}
         for attr in self._attrs:
-            input_vals[attr] = getattr(msg, attr)
+            if attr.startswith("touch0"):
+                input_vals[attr] = getattr(msg, attr)
+                if input_vals[attr].id == self._init_touch0_id:
+                    input_vals[attr].x = 0.0
+                    input_vals[attr].y = 1.0
+            else:
+                input_vals[attr] = getattr(msg, attr)
 
         to_pub = self._cls()
         if self._stamped:
