@@ -6,6 +6,7 @@ from ds4_driver_msgs.msg import Status
 
 from collections import defaultdict
 import itertools
+import math
 
 
 class StatusToTwist(object):
@@ -118,6 +119,14 @@ class StatusToTwist(object):
                             self._triangle_pressed = False
                         if self._x_locked:
                             val = self._x_locked_value
+                    elif k == "y" and self._x_locked:
+                        val = eval(expr, {}, input_vals)
+                        y_max = math.sqrt(1 - self._x_locked_value**2)
+                        if val < -y_max:
+                            val = -y_max
+                        elif val > y_max:
+                            val = y_max
+
                     else:
                         val = eval(expr, {}, input_vals)
                     setattr(vel_vec, k, scale * val)
